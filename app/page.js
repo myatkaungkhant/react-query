@@ -1,19 +1,12 @@
 "use client";
-import { useQuery } from "@tanstack/react-query";
-import { data } from "autoprefixer";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 
 export default function Home() {
+  const queryClient = useQueryClient();
+
   const getAllTodos = async () => {
     const res = await axios.get("http://localhost:3000/todos");
-    return res.data;
-  };
-
-  const createNewTodo = async () => {
-    const res = await axios.post("http://localhost:3000/todos", {
-      taskName: "task",
-      isFinished: false,
-    });
     return res.data;
   };
 
@@ -27,6 +20,36 @@ export default function Home() {
     queryFn: getAllTodos,
   });
 
+  const createNewTodo = async () => {
+    try {
+      const res = await axios.post("http://localhost:3000/todos", {
+        taskName: "Task To Do",
+        isFinished: false
+      });
+      return res.data;
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  const { mutate } = useMutation({
+    mutationKey: ["post", "todos"],
+    mutationFn: createNewTodo,
+  });
+
+  const onCreateNewTodo = () => {
+    mutate(
+      {},
+      {
+        onSuccess: async () => {
+          await queryClient.invalidateQueries({
+            queryKey: ["get", "todos"],
+          });
+        },
+      }
+    );
+  };
+
   return (
     <>
       {isLoading && "Loading ... ... "}
@@ -38,7 +61,7 @@ export default function Home() {
             </li>
           );
         })}
-      <button onClick={createNewTodo}>Create</button>
+      <button onClick={onCreateNewTodo}>Create</button>
     </>
   );
 }
